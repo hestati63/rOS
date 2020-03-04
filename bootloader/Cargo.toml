@@ -1,0 +1,8 @@
+[package]
+name = "bootloader"
+version = "0.1.0"
+authors = ["Minkyu Jung <hestati@kaist.ac.kr>"]
+edition = "2018"
+
+[dependencies]
+elf  = { path = "../elf" }
