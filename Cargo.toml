@@ -1,7 +1,8 @@
 [workspace]
 members = [
-	"bootloader",
-	"elf",
+  "bootloader",
+  "elf",
+  "arch",
 ]
 
 [profile.dev]
