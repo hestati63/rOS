@@ -1,14 +1,20 @@
 builddir := build
+profile ?= debug
 kern := $(builddir)/kern.bin
 boot := $(builddir)/boot.bin
 img  := $(builddir)/bootimg.bin
-target ?= bootloader
-disk_size = $(shell du --apparent-size --block-size=1 $(bootloader) | cut -f1)
+disk_size = $(shell du --apparent-size --block-size=1 $(boot) | cut -f1)
 disk_sectors = $(shell echo $(( $(disk_size) + 512)))
-
 CPUS ?= 4
 
-all: prepare $(boot)
+ifeq ($(profile), release)
+APPEND := --release
+else
+APPEND :=
+endif
+
+
+all: prepare image
 
 prepare:
 	mkdir -p $(builddir)
@@ -17,17 +23,24 @@ $(boot): bootloader
 $(kern): kernel
 
 bootloader:
-	RUST_TARGET_PATH=$(shell pwd) xargo build --target $(target)
-	objdump -D target/bootloader/debug/bootloader > $(builddir)/bootloader.asm
+	RUST_TARGET_PATH=$(shell pwd)/scripts \
+		xargo build --target bootloader $(APPEND) -p bootloader
+	objdump -d target/bootloader/$(profile)/bootloader > $(builddir)/bootloader.asm
 	rust-objcopy -I elf64-x86-64 -O binary --binary-architecture=i386:x86-64 \
-		target/bootloader/debug/bootloader build/bootloader.bin
+		target/bootloader/$(profile)/bootloader $(boot)
 
 kernel:
+	RUST_TARGET_PATH=$(shell pwd)/scripts \
+		xargo build --target kernel $(APPEND) -p kernel
+	objdump -d target/kernel/$(profile)/kernel > $(builddir)/kernel.asm
+	rust-objcopy -I elf64-x86-64 -O binary --binary-architecture=i386:x86-64 \
+		target/kernel/$(profile)/kernel $(kern)
+
 
 image: $(boot) $(kern)
 	dd if=/dev/zero of=$(img)~ bs=512 count=20000 2>/dev/null
-	dd if=$(bootloader) of=$(img)~ conv=notrunc 2>/dev/null
-	dd if=$(kernel) of=$(img)~ \
+	dd if=$(boot) of=$(img)~ conv=notrunc 2>/dev/null
+	dd if=$(kern) of=$(img)~ \
 		seek=$$(($$(($(disk_size)+511)) / 512)) conv=notrunc
 	mv $(img)~ $(img)
 
@@ -39,6 +52,6 @@ run: image
 		-serial mon:stdio
 
 clean:
-	@rm -rf $(builddir)
+	@rm -rf $(builddir) target
 
-.PHONY: all prepare clean bootloader
+.PHONY: all prepare clean bootloader kernel
