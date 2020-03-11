@@ -50,11 +50,15 @@ impl<'a> ELF {
         self.hdr.e_entry
     }
 
+    pub const fn phdr_off(&self) -> u64 {
+        self.hdr.e_phoff
+    }
+
     pub unsafe fn phdrs(&self) -> PhdrIter<'a> {
         PhdrIter {
             size: self.hdr.e_phnum,
             phdrs: slice::from_raw_parts(
-                (self.inp as u64 + self.hdr.e_phoff) as *mut ProgHeader64,
+                (self.inp as u64 + self.phdr_off()) as *mut ProgHeader64,
                 self.hdr.e_phnum as usize,
             ),
             cursor: 0,
