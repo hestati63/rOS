@@ -7,6 +7,7 @@
 
 mod initializer;
 mod lang;
+mod locking;
 
 #[no_mangle]
 unsafe extern "C" fn main() -> ! {
