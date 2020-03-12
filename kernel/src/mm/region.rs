@@ -54,7 +54,7 @@ impl Region {
         }
     }
 
-    const fn next_addr(&self) -> u64 {
+    pub const fn next_addr(&self) -> u64 {
         self.addr + self.len
     }
 }

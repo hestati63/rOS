@@ -1,5 +1,7 @@
 mod multiboot;
 mod region;
+mod zone;
+
 use arch::Virtual;
 
 extern "C" {
@@ -32,8 +34,8 @@ pub fn init(kern_base: Virtual) {
         }
     }
 
-    let regions = multiboot::read_mb_info(&kern_base);
-    unimplemented!()
-    // TODO: Add pages into zone, orders: 0 ~ 9 (if order is 9, we use huge page)
+    multiboot::read_mb_info(&kern_base)
+        .iter_usable()
+        .for_each(zone::foster_zone);
     // XXX: The allocator claim memory from the zone.
 }
