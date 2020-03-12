@@ -1,5 +1,5 @@
 use arch::{PortMappedIO, Virtual};
-use core::intrinsics::copy;
+use core::intrinsics::volatile_copy_memory;
 
 const CGA_BUF: u64 = 0xB8000;
 const CGA_BASE: u16 = 0x3D4;
@@ -66,25 +66,31 @@ pub struct CGA {
     port: u16,
 }
 
-unsafe fn init_cga(kbase: &Virtual) -> Result<(*mut VGABuffer, u16), ()> {
-    let cp = (kbase.to_u64() + CGA_BUF) as *mut u16;
-    *cp = 0xA55A;
-    if *cp != 0xA55A {
-        Err(())
-    } else {
-        Ok((cp as *mut VGABuffer, CGA_BASE))
-    }
-}
-
-fn init_mono(kbase: &Virtual) -> Result<(*mut VGABuffer, u16), ()> {
-    let cp = (kbase.to_u64() + MONO_BUF) as *mut VGABuffer;
-    Ok((cp, MONO_BASE))
-}
-
 impl CGA {
+    fn init_cga(kbase: &Virtual) -> Result<(*mut VGABuffer, u16), ()> {
+        unsafe {
+            let cp = (kbase.to_u64() + CGA_BUF) as *mut u16;
+            core::ptr::write_volatile(cp, 0xA55A);
+            if core::ptr::read_volatile(cp) == 0xA55A {
+                Ok((cp as *mut VGABuffer, CGA_BASE))
+            } else {
+                Err(())
+            }
+        }
+    }
+
+    #[link_section = ".init.text"]
+    fn init_mono(kbase: &Virtual) -> Result<(*mut VGABuffer, u16), ()> {
+        let cp = (kbase.to_u64() + MONO_BUF) as *mut VGABuffer;
+        Ok((cp, MONO_BASE))
+    }
+
+    #[link_section = ".init.text"]
     pub fn init(kbase: Virtual) -> Self {
         unsafe {
-            let (cp, port) = init_cga(&kbase).or_else(|_| init_mono(&kbase)).unwrap();
+            let (cp, port) = Self::init_cga(&kbase)
+                .or_else(|_| Self::init_mono(&kbase))
+                .unwrap();
             port.write_u8(14);
             let mut pos = ((port + 1).read_u8() as usize) << 8;
             port.write_u8(15);
@@ -103,20 +109,21 @@ impl CGA {
             0x8 => {
                 if self.pos > 0 {
                     self.pos -= 1;
-                    self.buffer.chars[self.pos] = VGAChar {
-                        color: vc.color,
-                        ascii: b' ',
+                    unsafe {
+                        core::ptr::write_volatile(
+                            self.buffer.chars.get_mut(self.pos).unwrap(),
+                            VGAChar {
+                                color: vc.color,
+                                ascii: b' ',
+                            },
+                        )
                     };
                 }
             }
             // \n
-            0xa => {
-                self.pos += BUFFER_WIDTH - (self.pos % BUFFER_WIDTH);
-            }
+            0xa => self.pos += BUFFER_WIDTH - (self.pos % BUFFER_WIDTH),
             // \r
-            0xd => {
-                self.pos -= self.pos % BUFFER_WIDTH;
-            }
+            0xd => self.pos -= self.pos % BUFFER_WIDTH,
             // \t
             0x9 => {
                 for _ in 0..5 {
@@ -130,7 +137,12 @@ impl CGA {
                 }
             }
             _ => {
-                self.buffer.chars[self.pos] = vc;
+                unsafe {
+                    core::ptr::write_volatile(
+                        self.buffer.chars.get_mut(self.pos).unwrap(),
+                        vc,
+                    )
+                };
                 self.pos += 1;
             }
         }
@@ -138,16 +150,21 @@ impl CGA {
         if self.pos >= BUFFER_SIZE {
             let buffer_va = self.buffer as *const _ as u64;
             unsafe {
-                copy(
-                    (buffer_va + BUFFER_WIDTH as u64) as *const _,
+                volatile_copy_memory(
+                    (buffer_va + BUFFER_WIDTH as u64) as *mut _,
                     self.buffer,
                     BUFFER_SIZE - BUFFER_WIDTH,
                 );
             }
             for i in (BUFFER_SIZE - BUFFER_WIDTH)..BUFFER_SIZE {
-                self.buffer.chars[i] = VGAChar {
-                    color: ColorMixin::new(Color::LightGray, Color::Black),
-                    ascii: b' ',
+                unsafe {
+                    core::ptr::write_volatile(
+                        self.buffer.chars.get_mut(i).unwrap(),
+                        VGAChar {
+                            color: Default::default(),
+                            ascii: b' ',
+                        },
+                    )
                 };
             }
             self.pos -= BUFFER_WIDTH;

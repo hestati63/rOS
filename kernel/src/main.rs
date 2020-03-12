@@ -1,6 +1,6 @@
 #![no_std]
 #![no_main]
-#![feature(asm, const_raw_ptr_deref, const_if_match)]
+#![feature(asm, const_raw_ptr_deref, const_if_match, core_intrinsics)]
 
 mod dev;
 mod initializer;

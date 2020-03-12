@@ -12,7 +12,11 @@ fn __cleanup_bss() {
     unsafe {
         let edata = &_edata as *const _ as u64;
         let end = &_end as *const _ as u64;
-        core::intrinsics::write_bytes(edata as *mut u8, 0, (end - edata) as usize);
+        core::intrinsics::write_bytes(
+            edata as *mut u8,
+            0,
+            (end - edata) as usize,
+        );
     }
 }
 
@@ -20,7 +24,6 @@ fn __cleanup_bss() {
 pub fn init() {
     __cleanup_bss();
     crate::dev::tty::init(Virtual::new(0x8004000000).unwrap());
-    crate::println!("dev initialized.");
     unimplemented!();
     // TODO: mm
     // TODO: mp
