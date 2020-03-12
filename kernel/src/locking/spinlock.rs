@@ -31,6 +31,7 @@ where
     }
 }
 
+#[allow(dead_code)]
 impl<T> SpinLock<T> {
     pub const fn new(data: T) -> SpinLock<T> {
         SpinLock {

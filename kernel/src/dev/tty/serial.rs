@@ -3,6 +3,7 @@ use arch::PortMappedIO;
 // Opaque object for serial
 pub struct Serial;
 
+#[allow(dead_code)]
 impl Serial {
     const BASE: u16 = 0x3F8;
     const RX: u16 = 0; // In: Receive buffer (DLAB=0)
