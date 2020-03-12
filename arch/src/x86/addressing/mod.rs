@@ -18,7 +18,8 @@ impl Physical {
 
 impl Virtual {
     // bits 48..64 should be zero or sign-extended.
-    pub const fn new(addr: u64) -> Result<Self, ()> {
+    #[inline(always)]
+    pub fn new(addr: u64) -> Result<Self, ()> {
         match addr & 0xffff_8000_0000_0000 {
             0 | 0xffff_8000_0000_0000 => Ok(Virtual(addr)),
             _ => Err(()),

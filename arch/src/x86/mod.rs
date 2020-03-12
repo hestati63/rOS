@@ -1,5 +1,5 @@
-mod port;
 mod addressing;
+mod port;
 
-pub use port::*;
 pub use addressing::*;
+pub use port::*;
