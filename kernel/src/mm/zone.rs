@@ -1,6 +1,6 @@
-use arch::{PG_SHIFT, Physical};
-use crate::locking::SpinLock;
 use super::region::Region;
+use crate::locking::SpinLock;
+use arch::{Physical, PG_SHIFT};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 #[repr(C)]
@@ -21,7 +21,7 @@ fn zone_type(addr: u64) -> zone_type {
         zone_type::ZoneDMA32
     } else {
         zone_type::ZoneHighMem
-   }
+    }
 }
 
 fn end_of_zone(zt: zone_type) -> u64 {
@@ -34,17 +34,17 @@ fn end_of_zone(zt: zone_type) -> u64 {
 
 fn order(size: u64) -> usize {
     match page_up!(size) >> PG_SHIFT {
-       v if v <= 0x1 => 0,
-       v if v <= 0x2 => 1,
-       v if v <= 0x4 => 2,
-       v if v <= 0x8 => 3,
-       v if v <= 0x10 => 4,
-       v if v <= 0x20 => 5,
-       v if v <= 0x40 => 6,
-       v if v <= 0x80 => 7,
-       v if v <= 0x100 => 8,
-       v if v <= 0x200 => 9,
-       _ => 10,
+        v if v <= 0x1 => 0,
+        v if v <= 0x2 => 1,
+        v if v <= 0x4 => 2,
+        v if v <= 0x8 => 3,
+        v if v <= 0x10 => 4,
+        v if v <= 0x20 => 5,
+        v if v <= 0x40 => 6,
+        v if v <= 0x80 => 7,
+        v if v <= 0x100 => 8,
+        v if v <= 0x200 => 9,
+        _ => 10,
     }
 }
 
@@ -57,28 +57,28 @@ static ZONES: [SpinLock<Zone>; 3] = [
 #[derive(Debug)]
 struct FreeArea {
     addr: Physical,
-    next: Option<&'static FreeArea>
+    next: Option<&'static FreeArea>,
 }
 
 #[derive(Debug)]
 struct Zone {
     // zone_start_pfn == zone_start_paddr >> PAGE_SHIFT
-    start_pfn       : u64,
+    start_pfn: u64,
     // total pages spanned by the zone.
-    total_pages     : u64,
+    total_pages: u64,
     // available pages in the zone. (freed)
-    available_pages : u64,
+    available_pages: u64,
     // free areas of diffrent size.
-    free_area       : [Option<&'static FreeArea>; 10],
+    free_area: [Option<&'static FreeArea>; 10],
 }
 
 impl Zone {
     const fn init() -> Self {
         Zone {
-            start_pfn       : 0,
-            total_pages     : 0,
-            available_pages : 0,
-            free_area       : [None; 10]
+            start_pfn: 0,
+            total_pages: 0,
+            available_pages: 0,
+            free_area: [None; 10],
         }
     }
 
@@ -107,18 +107,16 @@ pub fn foster_zone(region: Region) {
         let border = end_of_zone(zone_type(start));
         // split the region
         foster_zone(Region {
-            addr  : start,
-            len   : border - start,
-            mtype : region.mtype
+            addr: start,
+            len: border - start,
+            mtype: region.mtype,
         });
         foster_zone(Region {
-            addr  : border + 1,
-            len   : end - border - 1,
-            mtype : region.mtype
+            addr: border + 1,
+            len: end - border - 1,
+            mtype: region.mtype,
         });
     } else {
-        ZONES[zone_type(end) as usize]
-            .borrow()
-            .push_region(region);
+        ZONES[zone_type(end) as usize].borrow().push_region(region);
     }
 }

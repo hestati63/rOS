@@ -112,9 +112,14 @@ impl MemoryRegion {
     }
 
     pub fn show_info(&self) {
-        crate::println!("Memory Available: {}MB", self.total_size / 1024 / 1024);
-        crate::println!("Total {} pages available.", self.total_size / arch::PAGE_SIZE);
-
+        crate::println!(
+            "Memory Available: {}MB",
+            self.total_size / 1024 / 1024
+        );
+        crate::println!(
+            "Total {} pages available.",
+            self.total_size / arch::PAGE_SIZE
+        );
     }
 
     pub fn add(&mut self, d: Region) {
