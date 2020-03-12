@@ -22,13 +22,11 @@ const KERN_ELF_BASE: u64 = 0x20000;
 unsafe fn readseg(pa: u32, count: u32, offset: u32) {
     let mut addr: u32 = pa & !(Disk::BLOCK_SIZE - 1);
     // FIXME: add round_down and change to it.
-    let mut offset: u32 = (offset / Disk::BLOCK_SIZE) * Disk::BLOCK_SIZE;
+    let mut sect: u32 = offset / Disk::BLOCK_SIZE;
     while addr < pa + count {
-        if Disk::read_sector(addr, offset).is_err() {
-            panic!();
-        }
+        Disk::read_sector(addr, sect);
         addr += Disk::BLOCK_SIZE;
-        offset += Disk::BLOCK_SIZE;
+        sect += 1;
     }
 }
 
@@ -44,16 +42,18 @@ unsafe extern "C" fn boot_main() -> ! {
         Ok(elf) => {
             // Currently, bootloader assumes phdr lies on the first page.
             // This should be fixed later.
-            elf.phdrs().for_each(|phdr| {
+            for phdr in elf.phdrs() {
                 readseg(
                     phdr.p_paddr as u32,
-                    phdr.p_memsz as u32,
+                    phdr.p_filesz as u32,
                     phdr.p_offset as u32 + kern_start,
                 )
-            });
+            }
+
             // Now, the kernel loaded into the memory.
             // The only remaining thing is to jump into the kernel entry
-            asm!("jmpq *%rax" : : "{rsp}"(0x200000),
+            asm!("mov $$0x200000, %rsp\n\t
+                  jmpq *%rax" : :
                  "{rax}"(elf.entry())
                  : : "volatile");
             ::core::hint::unreachable_unchecked()
