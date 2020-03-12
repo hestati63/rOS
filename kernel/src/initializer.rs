@@ -24,6 +24,7 @@ fn __cleanup_bss() {
 pub fn init() {
     __cleanup_bss();
     crate::dev::tty::init(Virtual::new(0x8004000000).unwrap());
+    crate::mm::init(Virtual::new(0x8004000000).unwrap());
     unimplemented!();
     // TODO: mm
     // TODO: mp
