@@ -33,9 +33,7 @@ kernel:
 	RUST_TARGET_PATH=$(shell pwd)/scripts \
 		xargo build --target kernel $(APPEND) -p kernel
 	objdump -d target/kernel/$(profile)/kernel > $(builddir)/kernel.asm
-	rust-objcopy -I elf64-x86-64 -O binary --binary-architecture=i386:x86-64 \
-		target/kernel/$(profile)/kernel $(kern)
-
+	cp target/kernel/$(profile)/kernel $(kern)
 
 image: $(boot) $(kern)
 	dd if=/dev/zero of=$(img)~ bs=512 count=20000 2>/dev/null
