@@ -65,6 +65,11 @@ impl<T> SpinLock<T> {
             None
         }
     }
+
+    /// This steals the ownership even if the value is locked. Racy.
+    pub unsafe fn steal<'a>(&'a self) -> &'a mut T {
+        &mut *self.data.get()
+    }
 }
 
 unsafe impl<T: ?Sized + Send> Sync for SpinLock<T> {}

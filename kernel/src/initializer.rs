@@ -1,3 +1,5 @@
+use arch::Virtual;
+
 extern "C" {
     static _edata: u64;
     static _end: u64;
@@ -17,7 +19,9 @@ fn __cleanup_bss() {
 #[link_section = ".init.text"]
 pub fn init() {
     __cleanup_bss();
-    // TODO: dev
+    crate::dev::tty::init(Virtual::new(0x8004000000).unwrap());
+    crate::println!("dev initialized.");
+    unimplemented!();
     // TODO: mm
     // TODO: mp
     // TODO: trap
